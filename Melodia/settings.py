@@ -3,6 +3,10 @@
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+# Get the project folder
+import os
+PROJECT_FOLDER = os.path.abspath(os.path.dirname(__file__))
+
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -139,6 +143,9 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
+
+	# Melodia apps
+	'archiver',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -169,3 +176,27 @@ LOGGING = {
         },
     }
 }
+
+# Cache settings for all applications
+# Make sure the cache folder exists first
+import os
+CACHE_DIR = os.path.join(PROJECT_FOLDER, "cache")
+
+use_cache = True
+if not os.path.isdir(CACHE_DIR):
+	if not os.path.exists(CACHE_DIR):
+		#Create the cache directory
+		os.mkdir(CACHE_DIR)
+	else:
+		#Not a directory
+		import sys
+		sys.stderr.write('Caching disabled, cache folder is not a directory.')
+		use_cache = False
+
+if use_cache:
+	CACHES = {
+			'default': {
+				'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+				'LOCATION': CACHE_DIR,
+				}
+			}

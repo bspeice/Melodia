@@ -39,3 +39,10 @@ Good question. Besides just wanting to learn Django, there are some good reasons
 Questions? Comments? Concerns?
 ------------------------------
 Let me know!
+
+Development
+-----------
+In order to help develop for Melodia, the following packages will need to be installed (needed for audiotools, hopefully will eventually remove dependency):
+
+*	libcdio-cdda
+*	libcdio-paranoia
