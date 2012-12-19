@@ -41,6 +41,11 @@ class Archive (models.Model):
 	#And a reference to the songs in this archive
 	songs       = models.ManyToManyField(Song)
 
+	#Backup settings
+	backup_location  = models.CharField(max_length = 255)
+	backup_frequency = models.IntegerField()
+	last_backup      = models.DateTimeField()
+
 	def _scan_filesystem(self, progress_callback = lambda x: None):
 		"Scan the archive's root filesystem and add any new songs"
 		#This method is implemented since the other scan methods all need to use the same code
@@ -136,3 +141,21 @@ class Archive (models.Model):
 		#Make sure to add any new songs as well
 		self._scan_filesystem()
 
+	def _needs_backup(self):
+		"Check if the current archive is due for a backup"
+		import datetime
+
+		prev_backup_time = self.last_backup
+		current_time     = datetime.datetime.now()
+
+		delta = current_time - prev_backup_time
+		if delta > datetime.timedelta(seconds = self.backup_frequency):
+			return True
+		else:
+			return False
+
+	def run_backup(self, force_backup = False):
+		"Backup the current archive"
+		if force_backup or self._needs_backup():
+			import subprocess
+			subprocess.call(['rsync', '-av', self.root_folder, self.backup_location])

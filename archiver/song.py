@@ -78,4 +78,3 @@ class Song (models.Model):
 			from Melodia.melodia_settings import HASH_FUNCTION as hash
 			f              = open(self.url, 'rb')
 			self.file_hash = hash(f.read())
-
