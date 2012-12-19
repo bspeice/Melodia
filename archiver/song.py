@@ -78,3 +78,18 @@ class Song (models.Model):
 			from Melodia.melodia_settings import HASH_FUNCTION as hash
 			f              = open(self.url, 'rb')
 			self.file_hash = hash(f.read())
+
+	def convert(self, output_location, output_format, progress_func = lambda x, y: None):
+		"Convert a song to a new format, optionally specifying what format to convert to."
+		#Note that output_format over-rides the format guessed by output_location
+
+		from Melodia.resources import add_resource_dir
+		add_resource_dir()
+
+		import audiotools
+
+		convert_from = audiotools.open(self.url)
+		convert_from.convert(output_location,
+								output_format,
+								progress_func)
+
