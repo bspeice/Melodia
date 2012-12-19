@@ -41,7 +41,7 @@ class Archive (models.Model):
 	#And a reference to the songs in this archive
 	songs       = models.ManyToManyField(Song)
 
-	def _scan_filesystem(self):
+	def _scan_filesystem(self, progress_callback = lambda x: None):
 		"Scan the archive's root filesystem and add any new songs"
 		#This method is implemented since the other scan methods all need to use the same code
 		#DRY FTW
@@ -64,35 +64,28 @@ class Archive (models.Model):
 
 					except ObjectDoesNotExist, e:
 						#Song needs to be added to database
-						print "Adding song: " + filename
 
 						full_url = os.path.join(dirname, filename)
 						new_song = Song(url = full_url)
-
-						f                  = open(full_url)
-						new_song.file_hash = hash(f.read())
 						new_song.populate_metadata()
-
 						new_song.save()
-						
 						self.songs.add(new_song)
 
-	def scan(self):
+	def quick_scan(self):
 		"Scan this archive's root folder and make sure that	all songs are in the database."
 
 		from os.path import isfile
 
 		#Validate existing database results
 		for song in self.songs.all():
-			if not isfile(song.song_url):
+			if not isfile(song.url):
 				song.delete()
 
 		#Scan the root folder, and find if we need to add any new songs
-		self._scan_filesystem
+		self._scan_filesystem()
 
-	def deep_scan(self):
-		"Scan this archive's root folder and make sure that	all songs are in the database, and update metadata as necessary"
-
+	def scan(self):
+		"Scan this archive's root folder and make sure any local metadata are correct."
 		#Overload the regular hash function with whatever Melodia as a whole is using
 		from Melodia.melodia_settings import HASH_FUNCTION as hash
 		import os.path
@@ -112,6 +105,33 @@ class Archive (models.Model):
 			if file_hash != db_hash:
 				#Something about the song has changed, rescan the metadata
 				song.populate_metadata()
+
+		#Make sure to add any new songs as well
+		self._scan_filesystem()
+
+
+	def deep_scan(self):
+		"Scan this archive's root folder and make sure that	all songs are in the database, and use EchoNest to update metadata as necessary"
+
+		#Overload the regular hash function with whatever Melodia as a whole is using
+		from Melodia.melodia_settings import HASH_FUNCTION as hash
+		import os.path
+
+		for song in self.songs.all():
+
+			if not os.path.isfile(song.song_url):
+				song.delete()
+				continue
+
+			#The song exists, check that the hash is the same
+			db_hash = song.file_hash
+			
+			f         = open(song_url)
+			file_hash = hash(f.read())
+
+			if file_hash != db_hash:
+				#Something about the song has changed, rescan the metadata
+				song.populate_metadata(use_echonest = True)
 
 		#Make sure to add any new songs as well
 		self._scan_filesystem()

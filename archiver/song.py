@@ -23,7 +23,6 @@ class Song (models.Model):
 	genre        = models.CharField(max_length = 64)
 	bpm          = models.IntegerField()
 
-
 	#File metadata
 	bit_rate         = models.IntegerField()
 	duration         = models.IntegerField()
@@ -31,17 +30,52 @@ class Song (models.Model):
 	url              = models.CharField(max_length = 64)
 	file_hash        = melodia_settings.HASH_RESULT_DB_TYPE
 
-	def populate_metadata(self):
+	def populate_metadata(self, use_echonest = False, use_musicbrainz = False):
 		"Populate the metadata of this song"
-		#Will eventually use EchoNest to power this. For now, just use defaults.
 		import datetime
-		self.title        = "_"
-		self.artist       = "_"
-		self.album        = "_"
-		self.release_date = datetime.datetime.now()
-		self.genre        = "_"
-		self.bpm          = 0
 
-		self.bit_rate         = 0
-		self.duration         = 0
-		self.echonest_song_id = "_"
+		if use_echonest:
+			#Code to grab metadata from echonest here
+			pass
+
+		else:
+			#Grab metadata for the database using what is in the track.
+			from Melodia.resources import add_resource_dir
+			add_resource_dir()
+
+			import audiotools
+
+			try:
+				track                 = audiotools.open(self.url)
+				track_metadata        = track.get_metadata()
+
+				self.title            = track_metadata.track_name             or '<UNAVAILABLE>'
+				self.artist           = track_metadata.artist_name            or '<UNAVAILABLE>'
+				self.album            = track_metadata.album_name             or '<UNAVAILABLE>'
+				self.release_date     = datetime.date(int(track_metadata.year or 1), 1, 1)
+				self.bpm              = -1
+
+				self.bit_rate         = track.bits_per_sample()               or '<UNAVAILABLE>'
+				self.duration         = int(track.seconds_length())             or '<UNAVAILABLE>'
+				self.echonest_song_id = ''
+
+			except audiotools.UnsupportedFile, e:
+				#Couldn't grab the local data
+				#doesn't support the file, or because reading from it caused an error
+				self.title            = "<UNAVAILABLE>"
+				self.artist           = "<UNAVAILABLE>"
+				self.album            = "<UNAVAILABLE>"
+				self.release_date     = datetime.datetime.now()
+				self.bpm              = -1
+
+				self.bit_rate         = -1
+				self.duration         = -1
+				self.echonest_song_id = ''
+
+		#Hash check is run regardless of what metadata method is used
+		if self.file_hash == None:
+			#Only get the hash if we really must, it's an expensive operation...
+			from Melodia.melodia_settings import HASH_FUNCTION as hash
+			f              = open(self.url, 'rb')
+			self.file_hash = hash(f.read())
+
