@@ -19,4 +19,4 @@ SUPPORTED_AUDIO_EXTENSIONS = [ filetype[0] for filetype in SUPPORTED_AUDIO_FILET
 import django.db.models.fields
 
 HASH_FUNCTION       = hash
-HASH_RESULT_DB_TYPE = django.db.models.fields.IntegerField()
+HASH_RESULT_DB_TYPE = django.db.models.fields.IntegerField(default =  -1)

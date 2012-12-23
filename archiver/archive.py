@@ -11,17 +11,10 @@ describes a group of songs.
 In this way, you back up archives of music - you don't back up the songs in a
 playlist. Additionally, you may want to re-organize your music to use a
 cleaner directory structure - a playlist doesn't care about this.
-Note that archives are different from collections:
-		-Archives are physical organizations of songs. These are used in the backend.
-		-Collections are logical organizations of songs. These are intended to be used
-			on the frontend.
-	The difference is intended to separate the difference between logical and physical
-	operations. For example, you don't need to re-organize the directory structure of
-	a collection of songs. However, you may want to prevent kids from accessing explicit
-	songs even if they are part of the same archive folder as clean songs.
 """
 
 class Archive (models.Model):
+	import datetime
 
 	"""
 	The archive model itself, and all functions used to interact with it.
@@ -33,21 +26,21 @@ class Archive (models.Model):
 	music files under there, and takes control of them from there.
 	"""
 
-	name        = models.CharField(max_length  = 64)
+	name        = models.CharField(max_length = 64)
 
 	#Note that we're not using FilePathField since this is actually a folder
-	root_folder = models.CharField(max_length  = 255)
+	root_folder = models.CharField(max_length = 255)
 
 	#And a reference to the songs in this archive
 	songs       = models.ManyToManyField(Song)
 
 	#Backup settings
-	backup_location  = models.CharField(max_length = 255)
-	backup_frequency = models.IntegerField()
-	last_backup      = models.DateTimeField()
+	backup_location  = models.CharField(max_length = 255, default = "/dev/null")
+	backup_frequency = models.IntegerField(default = 604800) #1 week in seconds
+	last_backup      = models.DateTimeField(default = datetime.datetime.now()) #Note that this by default will be the time the archive was instantiated
 
-	def _scan_filesystem(self, progress_callback = lambda x: None):
-		"Scan the archive's root filesystem and add any new songs"
+	def _scan_filesystem(self):
+		"Scan the archive's root filesystem and add any new songs without adding metadata, delete songs that exist no more"
 		#This method is implemented since the other scan methods all need to use the same code
 		#DRY FTW
 		import re, os
@@ -58,6 +51,7 @@ class Archive (models.Model):
 		_regex = '|'.join(( '.*' + ext + '$' for ext in SUPPORTED_AUDIO_EXTENSIONS))
 		regex  = re.compile(_regex, re.IGNORECASE)
 
+		#Add new songs
 		for dirname, dirnames, filenames in os.walk(self.root_folder):
 			#For each filename
 			for filename in filenames:
@@ -69,77 +63,29 @@ class Archive (models.Model):
 
 					except ObjectDoesNotExist, e:
 						#Song needs to be added to database
-
 						full_url = os.path.join(dirname, filename)
 						new_song = Song(url = full_url)
-						new_song.populate_metadata()
 						new_song.save()
 						self.songs.add(new_song)
 
-	def quick_scan(self):
-		"Scan this archive's root folder and make sure that	all songs are in the database."
-
-		from os.path import isfile
-
-		#Validate existing database results
+		#Remove songs in the database if they exist no longer
 		for song in self.songs.all():
-			if not isfile(song.url):
-				song.delete()
-
-		#Scan the root folder, and find if we need to add any new songs
-		self._scan_filesystem()
-
-	def scan(self):
-		"Scan this archive's root folder and make sure any local metadata are correct."
-		#Overload the regular hash function with whatever Melodia as a whole is using
-		from Melodia.melodia_settings import HASH_FUNCTION as hash
-		import os.path
-
-		for song in self.songs.all():
-
-			if not os.path.isfile(song.song_url):
+			if not os.path.isfile(song.url):
 				song.delete()
 				continue
 
-			#The song exists, check that the hash is the same
-			db_hash = song.file_hash
-			
-			f         = open(song_url)
-			file_hash = hash(f.read())
 
-			if file_hash != db_hash:
-				#Something about the song has changed, rescan the metadata
-				song.populate_metadata()
-
-		#Make sure to add any new songs as well
-		self._scan_filesystem()
-
-
-	def deep_scan(self):
-		"Scan this archive's root folder and make sure that	all songs are in the database, and use EchoNest to update metadata as necessary"
-
-		#Overload the regular hash function with whatever Melodia as a whole is using
-		from Melodia.melodia_settings import HASH_FUNCTION as hash
-		import os.path
+	def _update_song_metadata(self, use_echonest = False, progress_callback = lambda x, y: None):
+		"Scan every song in this archive (database only) and make sure all songs are correct"
+		#This method operates only on the songs that are in the database - if you need to make
+		#sure that new songs are added, use the _scan_filesystem() method in addition
+		total_songs  = self.songs.count()
+		current_song = 0
 
 		for song in self.songs.all():
-
-			if not os.path.isfile(song.song_url):
-				song.delete()
-				continue
-
-			#The song exists, check that the hash is the same
-			db_hash = song.file_hash
-			
-			f         = open(song_url)
-			file_hash = hash(f.read())
-
-			if file_hash != db_hash:
-				#Something about the song has changed, rescan the metadata
-				song.populate_metadata(use_echonest = True)
-
-		#Make sure to add any new songs as well
-		self._scan_filesystem()
+			current_song += 1
+			song.populate_metadata(use_echonest = use_echonest)
+			progress_callback(current_song, total_songs)
 
 	def _needs_backup(self):
 		"Check if the current archive is due for a backup"
@@ -154,6 +100,28 @@ class Archive (models.Model):
 		else:
 			return False
 
+	def quick_scan(self):
+		"Scan this archive's root folder and make sure that	all songs are in the database."
+		#This is a quick scan - only validate whether or not songs should exist in the database
+
+		self._scan_filesystem()
+
+	def scan(self):
+		"Scan this archive's root folder and make sure any local metadata are correct."
+		#This is a longer scan - validate whether songs should exist, and use local data to update
+		#the database
+
+		self._scan_filesystem()
+		self._update_song_metadata()
+
+	def deep_scan(self):
+		"Scan this archive's root folder and make sure that	all songs are in the database, and use EchoNest to update metadata as necessary"
+		#This is a very long scan - validate whether songs should exist, and use Echonest to make sure
+		#that metadata is as accurate as possible.
+		self._scan_filesystem()
+		self._update_song_metadata(use_echonest = True)
+
+	
 	def run_backup(self, force_backup = False):
 		"Backup the current archive"
 		if force_backup or self._needs_backup():

@@ -20,7 +20,7 @@ class FilesystemScanTest(TestCase):
 		#We must save the archive before we can start adding songs to it
 		new_archive.save()
 
-		new_archive._scan_filesystem()
+		new_archive.quick_scan()
 
 class ScanTest(TestCase):
 	def test_archive_scan(self):

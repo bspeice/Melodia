@@ -1,12 +1,24 @@
 from django.db import models
 from Melodia import melodia_settings
 
+import datetime
 """
 The Song model
 Each instance of a Song represents a single music file.
 This database model is used for storing the metadata information about a song,
 and helps in doing sorting etc.
 """
+
+_default_title        = "<UNAVAILABLE>"
+_default_artist       = "<UNAVAILABLE>"
+_default_album        = "<UNAVAILABLE>"
+_default_release_date = datetime.datetime.now #Function will be called per new song, rather than once at loading the file
+_default_genre        = "<UNAVAILABLE>"
+_default_bpm          = -1
+
+_default_bit_rate         = -1
+_default_duration         = -1
+_default_echonest_song_id = ""
 
 class Song (models.Model):
 	
@@ -16,24 +28,36 @@ class Song (models.Model):
 	"""
 
 	#Standard user-populated metadata
-	title        = models.CharField(max_length = 64)
-	artist       = models.CharField(max_length = 64)
-	album        = models.CharField(max_length = 64)
-	release_date = models.DateField()
-	genre        = models.CharField(max_length = 64)
-	bpm          = models.IntegerField()
+	title        = models.CharField(max_length = 64, default = _default_title)
+	artist       = models.CharField(max_length = 64, default = _default_artist)
+	album        = models.CharField(max_length = 64, default = _default_album)
+	release_date = models.DateField(default = _default_release_date)
+	genre        = models.CharField(max_length = 64, default = _default_genre)
+	bpm          = models.IntegerField(default = _default_bpm)
 
 	#File metadata
-	bit_rate         = models.IntegerField()
-	duration         = models.IntegerField()
-	echonest_song_id = models.CharField(max_length = 64)
+	bit_rate         = models.IntegerField(default = _default_bit_rate)
+	duration         = models.IntegerField(default = _default_bit_rate)
+	echonest_song_id = models.CharField(max_length = 64, default = _default_echonest_song_id)
 	url              = models.CharField(max_length = 64)
 	file_hash        = melodia_settings.HASH_RESULT_DB_TYPE
 
-	def populate_metadata(self, use_echonest = False, use_musicbrainz = False):
-		"Populate the metadata of this song"
-		import datetime
+	def populate_metadata(self, use_echonest = False):
+		"Populate the metadata of this song (only if file hash has changed)"
+		#Overload the hash function with whatever Melodia as a whole is using
+		from Melodia.melodia_settings import HASH_FUNCTION as hash
 
+		#Check if there's a hash entry - if there is, the song may not have changed,
+		#and we can go ahead and return
+		if self.file_hash != None:
+			song_file = open(self.url, 'rb')
+			current_file_hash = hash(song_file.read())
+
+			if current_file_hash == self.file_hash:
+				#The song data hasn't changed at all, we don't need to do anything
+				return
+
+		#If we've gotten to here, we do actually need to fully update the metadata
 		if use_echonest:
 			#Code to grab metadata from echonest here
 			pass
@@ -49,38 +73,31 @@ class Song (models.Model):
 				track                 = audiotools.open(self.url)
 				track_metadata        = track.get_metadata()
 
-				self.title            = track_metadata.track_name             or '<UNAVAILABLE>'
-				self.artist           = track_metadata.artist_name            or '<UNAVAILABLE>'
-				self.album            = track_metadata.album_name             or '<UNAVAILABLE>'
+				self.title            = track_metadata.track_name  or _default_title
+				self.artist           = track_metadata.artist_name or _default_artist
+				self.album            = track_metadata.album_name  or _default_album
 				self.release_date     = datetime.date(int(track_metadata.year or 1), 1, 1)
-				self.bpm              = -1
+				self.bpm              = _default_bpm
 
-				self.bit_rate         = track.bits_per_sample()               or '<UNAVAILABLE>'
-				self.duration         = int(track.seconds_length())             or '<UNAVAILABLE>'
-				self.echonest_song_id = ''
+				self.bit_rate         = track.bits_per_sample() or _default_bit_rate
+				self.duration         = int(track.seconds_length()) or _default_duration
+				self.echonest_song_id = _default_echonest_song_id
 
 			except audiotools.UnsupportedFile, e:
-				#Couldn't grab the local data
-				#doesn't support the file, or because reading from it caused an error
-				self.title            = "<UNAVAILABLE>"
-				self.artist           = "<UNAVAILABLE>"
-				self.album            = "<UNAVAILABLE>"
-				self.release_date     = datetime.datetime.now()
-				self.bpm              = -1
+				#Couldn't grab the local data - fill in the remaining data for this record, preserving
+				#anything that already exists.
+				self.title            = self.title            or _default_title
+				self.artist           = self.artist           or _default_artist
+				self.album            = self.album            or _default_album
+				self.release_date     = self.release_date     or _default_release_date()
 
-				self.bit_rate         = -1
-				self.duration         = -1
-				self.echonest_song_id = ''
-
-		#Hash check is run regardless of what metadata method is used
-		if self.file_hash == None:
-			#Only get the hash if we really must, it's an expensive operation...
-			from Melodia.melodia_settings import HASH_FUNCTION as hash
-			f              = open(self.url, 'rb')
-			self.file_hash = hash(f.read())
+				self.bpm              = self.bpm              or _default_bpm
+				self.bit_rate         = self.bit_rate         or _default_bitrate
+				self.duration         = self.bit_rate         or _default_duration
+				self.echonest_song_id = self.echonest_song_id or _default_echonest_song_id
 
 	def convert(self, output_location, output_format, progress_func = lambda x, y: None):
-		"Convert a song to a new format, optionally specifying what format to convert to."
+		"Convert a song to a new format."
 		#Note that output_format over-rides the format guessed by output_location
 
 		from Melodia.resources import add_resource_dir
