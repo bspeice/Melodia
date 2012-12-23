@@ -51,6 +51,13 @@ class Archive (models.Model):
 		_regex = '|'.join(( '.*' + ext + '$' for ext in SUPPORTED_AUDIO_EXTENSIONS))
 		regex  = re.compile(_regex, re.IGNORECASE)
 
+		#Remove songs in the database if they exist no longer
+		#	-Do this first since we don't need to re-check songs that were just added
+		for song in self.songs.all():
+			if not os.path.isfile(song.url):
+				song.delete()
+				continue
+
 		#Add new songs
 		for dirname, dirnames, filenames in os.walk(self.root_folder):
 			#For each filename
@@ -67,13 +74,6 @@ class Archive (models.Model):
 						new_song = Song(url = full_url)
 						new_song.save()
 						self.songs.add(new_song)
-
-		#Remove songs in the database if they exist no longer
-		for song in self.songs.all():
-			if not os.path.isfile(song.url):
-				song.delete()
-				continue
-
 
 	def _update_song_metadata(self, use_echonest = False, progress_callback = lambda x, y: None):
 		"Scan every song in this archive (database only) and make sure all songs are correct"
