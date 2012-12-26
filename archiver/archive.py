@@ -76,7 +76,8 @@ class Archive (models.Model):
 						self.songs.add(new_song)
 
 	def _update_song_metadata(self, use_echonest = False, progress_callback = lambda x, y: None):
-		"Scan every song in this archive (database only) and make sure all songs are correct"
+		"""Scan every song in this archive (database only) and make sure all songs are correct
+		The progress_callback function is called with the current song being operated on first, and the total songs second."""
 		#This method operates only on the songs that are in the database - if you need to make
 		#sure that new songs are added, use the _scan_filesystem() method in addition
 		total_songs  = self.songs.count()
@@ -127,3 +128,68 @@ class Archive (models.Model):
 		if force_backup or self._needs_backup():
 			import subprocess
 			subprocess.call(['rsync', '-av', self.root_folder, self.backup_location])
+
+	def reorganize(self, format_string, progress_function = lambda x, y: None, song_status_function = lambda x, y: None, dry_run = False):
+		"""Reorganize a music archive using a specified format string.
+		Recognized escape characters:
+		%a - Artist Name                     %A - Album Name
+		%d - Disc Number                     %e - Number of discs
+		%f - Current Filename (no extension) %g - Current Filename (with extension)
+		%n - Track Number                    %o - Number of tracks on disc
+		%y - Album year
+
+		Note that all organization takes place relative to the archive's root folder.
+		The progress_function is called with the current song number as its first argument, and total songs as its second.
+		The song_status_function is called with the current song url as its first argument, and new url as its second."""
+		import os, shutil, errno
+
+		for song in self.songs.all():
+			_current_filename              = os.path.basename(song.url)
+			_current_filename_no_extension = os.path.splitext(_current_filename)[0]
+
+			_release_year = song.release_date.year
+
+			new_location = format_string.replace("%a", song.artist)\
+										.replace("%A", song.album)\
+										.replace("%d", song.disc_number)\
+										.replace("%e", song.disc_total)\
+										.replace("%f", _current_filename)\
+										.replace("%g", _current_filename_no_extension)\
+										.replace("%n", song.track_number)\
+										.replace("%o", song.track_total)\
+										.replace("%y", _release_year)
+
+			new_url = os.path.join(self.root_folder, new_location)
+
+			song_status_function(song.url, new_url)
+
+			if not dry_run:
+				new_folder = os.path.dirname(new_url)
+				try:
+					#`mkdir -p` functionality
+					if not os.path.isdir(new_folder):
+						os.makedirs(new_folder)
+
+					#Safely copy the file - don't 'move' it, but do a full 'copy' 'rm'
+					#This way if the process is ever interrupted, we have an unaltered copy
+					#of the file.
+					shutil.copyfile(song.url, new_url)
+					shutil.copystat(song.url, new_url)
+
+					#Notify the database about the new URL
+					old_url  = song.url
+					song.url = new_url
+					song.save()
+
+					#Actually remove the file since all references to the original location have been removed
+					os.remove(old_url)
+
+				except OSError as exc:
+					if exc.errno == errno.EEXIST and os.path.isdir(new_folder):
+						#This is safe to skip - makedirs() is complaining about a folder already existing
+						pass
+					else: raise
+
+				except IOError as exc:
+					#shutil error - likely that folders weren't specified correctly
+					raise

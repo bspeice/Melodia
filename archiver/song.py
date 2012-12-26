@@ -9,12 +9,16 @@ This database model is used for storing the metadata information about a song,
 and helps in doing sorting etc.
 """
 
-_default_title        = "<UNAVAILABLE>"
-_default_artist       = "<UNAVAILABLE>"
-_default_album        = "<UNAVAILABLE>"
+_default_title        = "_UNAVAILABLE_"
+_default_artist       = "_UNAVAILABLE_"
+_default_album        = "_UNAVAILABLE_"
 _default_release_date = datetime.datetime.now #Function will be called per new song, rather than once at loading the file
-_default_genre        = "<UNAVAILABLE>"
+_default_genre        = "_UNAVAILABLE_"
 _default_bpm          = -1
+_default_disc_number  = -1
+_default_disc_total   = -1
+_default_track_number = -1
+_default_track_total  = -1
 
 _default_bit_rate         = -1
 _default_duration         = -1
@@ -28,12 +32,16 @@ class Song (models.Model):
 	"""
 
 	#Standard user-populated metadata
-	title        = models.CharField(max_length = 64, default = _default_title)
-	artist       = models.CharField(max_length = 64, default = _default_artist)
-	album        = models.CharField(max_length = 64, default = _default_album)
-	release_date = models.DateField(default = _default_release_date)
-	genre        = models.CharField(max_length = 64, default = _default_genre)
+	title        = models.CharField(max_length = 64, default            = _default_title)
+	artist       = models.CharField(max_length = 64, default            = _default_artist)
+	album        = models.CharField(max_length = 64, default            = _default_album)
+	release_date = models.DateField(default    = _default_release_date)
+	genre        = models.CharField(max_length = 64, default            = _default_genre)
 	bpm          = models.IntegerField(default = _default_bpm)
+	disc_number  = models.IntegerField(default = _default_disc_number)
+	disc_total   = models.IntegerField(default = _default_disc_total)
+	track_number = models.IntegerField(default = _default_track_number)
+	track_total  = models.IntegerField(default = _default_track_total)
 
 	#File metadata
 	bit_rate         = models.IntegerField(default = _default_bit_rate)
@@ -73,11 +81,15 @@ class Song (models.Model):
 				track                 = audiotools.open(self.url)
 				track_metadata        = track.get_metadata()
 
-				self.title            = track_metadata.track_name  or _default_title
-				self.artist           = track_metadata.artist_name or _default_artist
-				self.album            = track_metadata.album_name  or _default_album
-				self.release_date     = datetime.date(int(track_metadata.year or 1), 1, 1)
-				self.bpm              = _default_bpm
+				self.title        = track_metadata.track_name  or _default_title
+				self.artist       = track_metadata.artist_name or _default_artist
+				self.album        = track_metadata.album_name  or _default_album
+				self.release_date = datetime.date(int(track_metadata.year or 1), 1, 1)
+				self.track_number = track_metadata.track_number or _default_track_number
+				self.track_total  = track_metadata.track_total  or _default_track_total
+				self.disc_number  = track_metadata.album_number or _default_disc_number
+				self.disc_total   = track_metadata.album_total  or _default_disc_total
+				self.bpm          = _default_bpm
 
 				self.bit_rate         = track.bits_per_sample() or _default_bit_rate
 				self.duration         = int(track.seconds_length()) or _default_duration
