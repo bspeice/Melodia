@@ -17,10 +17,12 @@ Additionally, the ManyToMany field is included to make sure we don't use the glo
 """
 
 class Playlist (models.Model):
-	"The Playlist class defines the playlist model and its operations"
+	"""The Playlist class defines the playlist model and its operations.
+	Currently supported are add, move, and remove operations, as well as exporting to
+	multiple formats."""
 
 	name       = models.CharField(max_length = 255)
-	song_order = IntegerListField()
+	song_list = IntegerListField()
 
 	#This is a bit of a backup field, since technically the song PK's are in
 	#the song_order field. However, it might be useful to just get a reference
@@ -32,11 +34,11 @@ class Playlist (models.Model):
 		"""Make sure that the 'songs' relation is up-to-date."""
 		#This operation works by getting the ID's for all songs currently in the playlist,
 		#calculates what we need to add, what we need to remove, and then does it.
-		#As much work as is possible is done on the python side to avoid the DB
+		#As much work as is possible is done on the python side to avoid the DB at all costs.
 		current_song_ids     = [song.id for song in self.songs.all()]
 		current_song_ids_set = set(current_song_ids)
 
-		new_song_ids_set = set(song_order)
+		new_song_ids_set = set(self.song_list)
 
 		remove_set = current_song_ids_set.difference(new_song_ids_set)
 		add_set    = new_song_ids_set.difference(current_song_ids_set)
@@ -58,7 +60,7 @@ class Playlist (models.Model):
 			
 		self.songs.add(new_song)
 
-		self.song_order.insert(position, new_song.id)
+		self.song_list.insert(position, new_song.id)
 
 		_populate_songs()
 
@@ -70,30 +72,36 @@ class Playlist (models.Model):
 
 		self.songs.add(new_song)
 
-		self.song_order.append(new_song.id)
+		self.song_list.append(new_song.id)
+
+		_populate_songs()
 
 	def move(self, original_position, new_position):
 		"""Move a song from one position to another"""
 		if original_position == new_position:
 			return
 
-		song_id = self.song_order[original_position]
+		song_id = self.song_list[original_position]
 
 		#This is actually a bit more complicated than it first appears, since the index we're moving to may actually change
 		#when we remove an item.
 		if new_position < original_position:
-			del self.song_order[original_position]
-			self.song_order.insert(new_position, song_id)
+			del self.song_list[original_position]
+			self.song_list.insert(new_position, song_id)
 
 		else:
-			del self.song_order[original_position]
-			self.song_order.insert(new_position - 1, song_id) #Account for the list indices shifting down.
+			del self.song_list[original_position]
+			self.song_list.insert(new_position - 1, song_id) #Account for the list indices shifting down.
+
+		_populate_songs()
 
 	def remove(self, position):
-		if position > len(self.song_order):
+		if position > len(self.song_list):
 			return False
 
-		del self.song_order[position]
+		del self.song_list[position]
+
+		_populate_songs()
 
 	def export(self, playlist_type = "m3u"):
 		"""Export this internal playlist to a file format."""
@@ -105,3 +113,7 @@ class Playlist (models.Model):
 		else:
 			#Export m3u, default option
 			pass
+
+	def import(self, playlist_string = None):
+		"""Import and convert a playlist into native DB format."""
+		pass
