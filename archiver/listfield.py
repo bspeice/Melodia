@@ -22,6 +22,9 @@ class IntegerListField(models.TextField):
 		#Process a database string
 		
 		#Validation first
+		if len(value) <= 0:
+			return []
+
 		if value[0] != '[' or value[-1] != ']':
 			raise ValidationError("Invalid input to parse a list of integers!")
 
@@ -43,6 +46,6 @@ class IntegerListField(models.TextField):
 
 		separator_string = ", "
 
-		list_elements = separator_string.join(value)
+		list_elements = separator_string.join(map(str, value))
 
 		return "[" + list_elements + "]"
