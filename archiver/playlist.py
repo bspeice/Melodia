@@ -17,9 +17,11 @@ Additionally, the ManyToMany field is included to make sure we don't use the glo
 """
 
 class Playlist (models.Model):
-	"""The Playlist class defines the playlist model and its operations.
+	"""
+	The Playlist class defines the playlist model and its operations.
 	Currently supported are add, move, and remove operations, as well as exporting to
-	multiple formats."""
+	multiple formats.
+	"""
 
 	name       = models.CharField(max_length = 255)
 	song_list = IntegerListField()
@@ -31,7 +33,9 @@ class Playlist (models.Model):
 	songs      = models.ManyToManyField(Song)
 
 	def _populate_songs(self):
-		"""Make sure that the 'songs' relation is up-to-date."""
+		"""
+		Make sure that the 'songs' relation is up-to-date.
+		"""
 		#This operation works by getting the ID's for all songs currently in the playlist,
 		#calculates what we need to add, what we need to remove, and then does it.
 		#As much work as is possible is done on the python side to avoid the DB at all costs.
@@ -52,7 +56,9 @@ class Playlist (models.Model):
 			self.songs.add(song)
 
 	def insert(self, position, new_song):
-		"""Insert a new song into the playlist at a specific position."""
+		"""
+		Insert a new song into the playlist at a specific position.
+		"""
 
 		if not isinstance(new_song, Song):
 			#Not given a song reference, raise an error
@@ -65,7 +71,9 @@ class Playlist (models.Model):
 		_populate_songs()
 
 	def append(self, new_song):
-		"""Add a new song to the end of the playlist."""
+		"""
+		Add a new song to the end of the playlist.
+		"""
 		if not isinstance(new_song, Song):
 			#Not given a song reference, raise an error
 			raise ValidationError("Not given a song reference to insert.")
@@ -77,7 +85,9 @@ class Playlist (models.Model):
 		_populate_songs()
 
 	def move(self, original_position, new_position):
-		"""Move a song from one position to another"""
+		"""
+		Move a song from one position to another
+		"""
 		if original_position == new_position:
 			return
 
@@ -104,16 +114,52 @@ class Playlist (models.Model):
 		_populate_songs()
 
 	def export(self, playlist_type = "m3u"):
-		"""Export this internal playlist to a file format."""
+		"""
+		Export this internal playlist to a file format.
+		Supported formats:
+			-pls
+			-m3u
+		Return value is a string containing the playlist -
+		you can write it to file as you deem necessary.
+		"""
 		#Default m3u playlist type, support others as I build them.
+		playlist_string = ""
 
 		if playlist_type == "pls":
-			pass
+			#Playlist header
+			playlist_string += "[playlist]"
+
+			#Playlist body
+			for index, song_id in enumerate(self.song_list):
+				song = self.songs.get(id = song_id)
+
+				playlist_string += "File" + str(index + 1) + "=" + song.url + "\n"
+				playlist_string += "Title" + str(index + 1) + "=" + song.title + "\n"
+				playlist_string += "Length" + str(index + 1) + "=" + song.duration + "\n"
+
+			#Playlist footer
+			playlist_string += "NumberOfEntries=" + str(len(self.song_list))
+			playlist_string += "Version=2"
 
 		else:
-			#Export m3u, default option
-			pass
+			#Export m3u, default option if nothing else is recognized
 
-	def import(self, playlist_string = None):
-		"""Import and convert a playlist into native DB format."""
+			#Playlist header
+			playlist_string += "#EXTM3U" + "\n"
+
+			#Playlist body
+			for song_id in self.song_list:
+				song = self.songs.get(id = song_id)
+
+				playlist_string += "#EXTINF:" + song.duration + "," + song.artist + " - " + song.title + "\n"
+				playlist_string += song.url + "\n"
+
+			#Playlist footer
+
+	def _import(self, playlist_string = None):
+		"""
+		Import and convert a playlist into native DB format.
+		As a side note - the _import() name is used since python doesn't let
+		you name a function import().
+		"""
 		pass
