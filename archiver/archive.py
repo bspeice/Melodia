@@ -51,30 +51,19 @@ class Archive (models.Model):
 		_regex = '|'.join(( '.*' + ext + '$' for ext in SUPPORTED_AUDIO_EXTENSIONS))
 		regex  = re.compile(_regex, re.IGNORECASE)
 
-		#Remove songs in the database if they exist no longer
-		#	-Do this first since we don't need to re-check songs that were just added
-		for song in self.songs.all():
-			if not os.path.isfile(song.url):
-				song.delete()
-				continue
+		#It's hackish, but far fewer transactions to delete everything first, and add it all back.
+		#If we get interrupted, just re-run it.
+		self.songs.all().delete()
 
 		#Add new songs
 		for dirname, dirnames, filenames in os.walk(self.root_folder):
 			#For each filename that is supported
 			for filename in itertools.ifilter(lambda filename: re.match(regex, filename), filenames):
-				#Make sure that `filename` is in the database
-				try:
-					rel_url = os.path.join(dirname, filename)
-					full_url = os.path.abspath(rel_url)
-					self.songs.get(url = full_url)
-
-				except ObjectDoesNotExist, e:
-					#Song needs to be added to database
-					rel_url = os.path.join(dirname, filename)
-					full_url = os.path.abspath(rel_url)
-					new_song = Song(url = full_url)
-					new_song.save()
-					self.songs.add(new_song)
+				rel_url = os.path.join(dirname, filename)
+				full_url = os.path.abspath(rel_url)
+				new_song = Song(url = full_url)
+				new_song.save()
+				self.songs.add(new_song)
 
 	def _update_song_metadata(self, use_echonest = False, progress_callback = lambda x, y: None):
 		"""Scan every song in this archive (database only) and make sure all songs are correct
