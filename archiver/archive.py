@@ -66,11 +66,14 @@ class Archive (models.Model):
 				if re.match(regex, filename):
 					#Make sure that `filename` is in the database
 					try:
-						self.songs.get(url = filename)
+						rel_url = os.path.join(dirname, filename)
+						full_url = os.path.abspath(rel_url)
+						self.songs.get(url = full_url)
 
 					except ObjectDoesNotExist, e:
 						#Song needs to be added to database
-						full_url = os.path.join(dirname, filename)
+						rel_url = os.path.join(dirname, filename)
+						full_url = os.path.abspath(rel_url)
 						new_song = Song(url = full_url)
 						new_song.save()
 						self.songs.add(new_song)
@@ -131,10 +134,10 @@ class Archive (models.Model):
 	def reorganize(self, format_string, progress_function = lambda w, x, y, z: None, dry_run = False):
 		"""Reorganize a music archive using a specified format string.
 		Recognized escape characters:
-		%a - Artist Name                     %A - Album Name
-		%d - Disc Number                     %e - Number of discs
-		%f - Current Filename (no extension) %g - Current Filename (with extension)
-		%n - Track Number                    %o - Number of tracks on disc
+		%a - Artist Name                       %A - Album Name
+		%d - Disc Number                       %e - Number of discs
+		%f - Current Filename (with extension) %g - Current Filename (no extension)
+		%n - Track Number                      %o - Number of tracks on disc
 		%y - Album year
 
 		Note that all organization takes place relative to the archive's root folder.
@@ -153,13 +156,13 @@ class Archive (models.Model):
 
 			new_location = format_string.replace("%a", song.artist)\
 										.replace("%A", song.album)\
-										.replace("%d", song.disc_number)\
-										.replace("%e", song.disc_total)\
+										.replace("%d", str(song.disc_number))\
+										.replace("%e", str(song.disc_total))\
 										.replace("%f", _current_filename)\
 										.replace("%g", _current_filename_no_extension)\
-										.replace("%n", song.track_number)\
-										.replace("%o", song.track_total)\
-										.replace("%y", _release_year)
+										.replace("%n", str(song.track_number))\
+										.replace("%o", str(song.track_total))\
+										.replace("%y", str(_release_year))
 
 			new_url = os.path.join(self.root_folder, new_location)
 
