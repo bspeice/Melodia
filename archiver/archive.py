@@ -43,7 +43,7 @@ class Archive (models.Model):
 		"Scan the archive's root filesystem and add any new songs without adding metadata, delete songs that exist no more"
 		#This method is implemented since the other scan methods all need to use the same code
 		#DRY FTW
-		import re, os
+		import re, os, itertools
 		from django.core.exceptions import ObjectDoesNotExist
 		from Melodia.melodia_settings import SUPPORTED_AUDIO_EXTENSIONS
 		from Melodia.melodia_settings import HASH_FUNCTION as hash
@@ -60,23 +60,21 @@ class Archive (models.Model):
 
 		#Add new songs
 		for dirname, dirnames, filenames in os.walk(self.root_folder):
-			#For each filename
-			for filename in filenames:
-				#If the filename is a supported audio extension
-				if re.match(regex, filename):
-					#Make sure that `filename` is in the database
-					try:
-						rel_url = os.path.join(dirname, filename)
-						full_url = os.path.abspath(rel_url)
-						self.songs.get(url = full_url)
+			#For each filename that is supported
+			for filename in itertools.ifilter(lambda filename: re.match(regex, filename), filenames):
+				#Make sure that `filename` is in the database
+				try:
+					rel_url = os.path.join(dirname, filename)
+					full_url = os.path.abspath(rel_url)
+					self.songs.get(url = full_url)
 
-					except ObjectDoesNotExist, e:
-						#Song needs to be added to database
-						rel_url = os.path.join(dirname, filename)
-						full_url = os.path.abspath(rel_url)
-						new_song = Song(url = full_url)
-						new_song.save()
-						self.songs.add(new_song)
+				except ObjectDoesNotExist, e:
+					#Song needs to be added to database
+					rel_url = os.path.join(dirname, filename)
+					full_url = os.path.abspath(rel_url)
+					new_song = Song(url = full_url)
+					new_song.save()
+					self.songs.add(new_song)
 
 	def _update_song_metadata(self, use_echonest = False, progress_callback = lambda x, y: None):
 		"""Scan every song in this archive (database only) and make sure all songs are correct
