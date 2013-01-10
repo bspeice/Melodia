@@ -68,7 +68,7 @@ class Playlist (models.Model):
 
 		self.song_list.insert(position, new_song.id)
 
-		_populate_songs()
+		self._populate_songs()
 
 	def append(self, new_song):
 		"""
@@ -82,7 +82,7 @@ class Playlist (models.Model):
 
 		self.song_list.append(new_song.id)
 
-		_populate_songs()
+		self._populate_songs()
 
 	def move(self, original_position, new_position):
 		"""
@@ -103,7 +103,7 @@ class Playlist (models.Model):
 			del self.song_list[original_position]
 			self.song_list.insert(new_position - 1, song_id) #Account for the list indices shifting down.
 
-		_populate_songs()
+		self._populate_songs()
 
 	def remove(self, position):
 		if position > len(self.song_list):
@@ -111,7 +111,7 @@ class Playlist (models.Model):
 
 		del self.song_list[position]
 
-		_populate_songs()
+		self._populate_songs()
 
 	def export(self, playlist_type = "m3u"):
 		"""
@@ -135,7 +135,7 @@ class Playlist (models.Model):
 
 				playlist_string += "File" + str(index + 1) + "=" + song.url + "\n"
 				playlist_string += "Title" + str(index + 1) + "=" + song.title + "\n"
-				playlist_string += "Length" + str(index + 1) + "=" + song.duration + "\n"
+				playlist_string += "Length" + str(index + 1) + "=" + str(song.duration) + "\n"
 
 			#Playlist footer
 			playlist_string += "NumberOfEntries=" + str(len(self.song_list))
@@ -151,10 +151,12 @@ class Playlist (models.Model):
 			for song_id in self.song_list:
 				song = self.songs.get(id = song_id)
 
-				playlist_string += "#EXTINF:" + song.duration + "," + song.artist + " - " + song.title + "\n"
+				playlist_string += "#EXTINF:" + str(song.duration) + "," + song.artist + " - " + song.title + "\n"
 				playlist_string += song.url + "\n"
 
 			#Playlist footer
+
+		return playlist_string
 
 	def _import(self, playlist_string = None):
 		"""
@@ -162,4 +164,6 @@ class Playlist (models.Model):
 		As a side note - the _import() name is used since python doesn't let
 		you name a function import().
 		"""
-		pass
+		if not playlist_string:
+			#Make sure we have a string to operate on.
+			return False

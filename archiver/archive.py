@@ -81,12 +81,11 @@ class Archive (models.Model):
 		#This method operates only on the songs that are in the database - if you need to make
 		#sure that new songs are added, use the _scan_filesystem() method in addition
 		total_songs  = self.songs.count()
-		current_song = 0
 
-		for song in self.songs.all():
-			current_song += 1
+		for index, song in enumerate(self.songs.all()):
 			song.populate_metadata(use_echonest = use_echonest)
-			progress_callback(current_song, total_songs)
+			song.save()
+			progress_callback(index + 1, total_songs)
 
 	def _needs_backup(self):
 		"Check if the current archive is due for a backup"
@@ -129,7 +128,7 @@ class Archive (models.Model):
 			import subprocess
 			subprocess.call(['rsync', '-av', self.root_folder, self.backup_location])
 
-	def reorganize(self, format_string, progress_function = lambda x, y: None, song_status_function = lambda x, y: None, dry_run = False):
+	def reorganize(self, format_string, progress_function = lambda w, x, y, z: None, dry_run = False):
 		"""Reorganize a music archive using a specified format string.
 		Recognized escape characters:
 		%a - Artist Name                     %A - Album Name
@@ -139,11 +138,14 @@ class Archive (models.Model):
 		%y - Album year
 
 		Note that all organization takes place relative to the archive's root folder.
-		The progress_function is called with the current song number as its first argument, and total songs as its second.
-		The song_status_function is called with the current song url as its first argument, and new url as its second."""
+		The progress_function is called with the current song number as its first argument, total songs as its second,
+		current song URL as the third argument, and new URL as the fourth.
+		"""
 		import os, shutil, errno
 
-		for song in self.songs.all():
+		total_songs = self.songs.count()
+
+		for index, song in enumerate(self.songs.all()):
 			_current_filename              = os.path.basename(song.url)
 			_current_filename_no_extension = os.path.splitext(_current_filename)[0]
 
@@ -161,7 +163,7 @@ class Archive (models.Model):
 
 			new_url = os.path.join(self.root_folder, new_location)
 
-			song_status_function(song.url, new_url)
+			progress_function(index + 1, total_songs, song.url, new_url)
 
 			if not dry_run:
 				new_folder = os.path.dirname(new_url)
