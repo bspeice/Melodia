@@ -81,8 +81,50 @@ class PlaylistExportTest(TestCase):
 		a_playlist.save()
 
 		for song in new_archive.songs.all():
+			song.save()
 			a_playlist.append(song)
 
 		a_playlist.save()
 
 		playlist_string = a_playlist.export()
+
+class PlaylistImportTest(TestCase):
+	def test_playlist_import(self):
+		"Test that we can import a playlist."
+		#----------------------------------------------------------------------------
+		#- Re-using code from scanning and export
+		from archiver.archive import Archive
+		from archiver.playlist import Playlist
+
+		import os
+		from archiver.archive import Archive
+		from Melodia.settings import PROJECT_FOLDER
+
+		TEST_DATA_FOLDER = os.path.join(PROJECT_FOLDER, "test_data")
+		new_archive      = Archive(root_folder = TEST_DATA_FOLDER)
+
+		#We must save the archive before we can start adding songs to it
+		new_archive.save()
+		new_archive.scan()
+		new_archive.save()
+
+		#Resume playlist testing code
+		a_playlist = Playlist()
+		a_playlist.name = "Testing..."
+		a_playlist.save()
+
+		for song in new_archive.songs.all():
+			song.save()
+			a_playlist.append(song)
+
+		a_playlist.save()
+
+		playlist_string = a_playlist.export()
+		#----------------------------------------------------------------------------
+
+		another_playlist = Playlist()
+		another_playlist.name = "Testing 2..."
+		another_playlist.save()
+
+		another_playlist._import(playlist_string)
+		print len(another_playlist.song_list)

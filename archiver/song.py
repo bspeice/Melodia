@@ -47,7 +47,7 @@ class Song (models.Model):
 	bit_rate         = models.IntegerField(default = _default_bit_rate)
 	duration         = models.IntegerField(default = _default_bit_rate)
 	echonest_song_id = models.CharField(max_length = 64, default = _default_echonest_song_id)
-	url              = models.CharField(max_length = 255, primary_key = True)
+	url              = models.CharField(max_length = 255)
 	file_hash        = melodia_settings.HASH_RESULT_DB_TYPE
 
 	def populate_metadata(self, use_echonest = False):

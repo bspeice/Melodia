@@ -179,6 +179,7 @@ class Playlist (models.Model):
 		#Figure out what format we're in
 		if playlist_string[0:7] == "#EXTM3U":
 			#Import m3u format playlist
+			print playlist_string
 
 			#Expected format is "#EXTINF:" followed by the song url on the next line.
 			line_iterator = playlist_string.split("\n").__iter__()
@@ -186,16 +187,18 @@ class Playlist (models.Model):
 			#In case we end iteration early
 			try:
 				for line in line_iterator:
-					if line[0:8] != "#EXTINF:":
-						song_url = line.next() #Consume the next line
+
+					if line[0:8] == "#EXTINF:":
+						song_url = line_iterator.next() #Consume the next line
 
 						try:
 							song = Song.objects.get(url = song_url)
-							self.song_list.append(song.id)
+							self.append(song)
 
 						except ObjectDoesNotExist:
 							#The URL of our song could not be found
-							warn("The playlist entry: " + song_url + " could not be found, and has not been added to your playlist."
+							warn("The playlist entry: " + song_url + " could not be found, and has not been added to your playlist.")
+							continue
 
 			#Silently end processing
 			except StopIteration:
@@ -212,11 +215,12 @@ class Playlist (models.Model):
 				song_url = file_line[5:]
 				try:
 					song = Song.objects.get(url = song_url)
-					self.song_list.append(song.id)
+					self.append(song)
 
 				except ObjectDoesNotExist:
 					#The URL of our song could not be found
-					warn("The playlist entry: " + song_url + " could not be found, and has not been added to your playlist."
+					warn("The playlist entry: " + song_url + " could not be found, and has not been added to your playlist.")
+					continue
 
 			return True
 
