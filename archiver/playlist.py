@@ -1,7 +1,11 @@
 from django.db import models
+from django.core.exceptions import ObjectDoesNotExist
 
 from song import Song
 from listfield import IntegerListField
+
+import re
+from warnings import warn
 
 """
 Playlist model
@@ -152,7 +156,7 @@ class Playlist (models.Model):
 				song = self.songs.get(id = song_id)
 
 				playlist_string += "#EXTINF:" + str(song.duration) + "," + song.artist + " - " + song.title + "\n"
-				playlist_string += song.url + "\n"
+				playlist_string += song.url + "\n\n"
 
 			#Playlist footer
 
@@ -161,9 +165,60 @@ class Playlist (models.Model):
 	def _import(self, playlist_string = None):
 		"""
 		Import and convert a playlist into native DB format.
+		This function will return true if the playlist format was recognized, false otherwise.
+		It will return true even if there are errors processing individual songs in the playlist.
 		As a side note - the _import() name is used since python doesn't let
 		you name a function import().
 		"""
+		#TODO: Code playlist importing
+		self.song_list = []
 		if not playlist_string:
 			#Make sure we have a string to operate on.
 			return False
+
+		#Figure out what format we're in
+		if playlist_string[0:7] == "#EXTM3U":
+			#Import m3u format playlist
+
+			#Expected format is "#EXTINF:" followed by the song url on the next line.
+			line_iterator = playlist_string.split("\n").__iter__()
+
+			#In case we end iteration early
+			try:
+				for line in line_iterator:
+					if line[0:8] != "#EXTINF:":
+						song_url = line.next() #Consume the next line
+
+						try:
+							song = Song.objects.get(url = song_url)
+							self.song_list.append(song.id)
+
+						except ObjectDoesNotExist:
+							#The URL of our song could not be found
+							warn("The playlist entry: " + song_url + " could not be found, and has not been added to your playlist."
+
+			#Silently end processing
+			except StopIteration:
+				pass
+
+			return True
+
+		if playlist_string[0:10] == "[playlist]":
+			#Import pls format playlist
+			#This one is a bit simpler - we're just looking for lines that start with "File="
+			pls_regex = re.compile("^File=", re.IGNORECASE)
+
+			for file_line in pls_regex.match(pls_regex, playlist_string):
+				song_url = file_line[5:]
+				try:
+					song = Song.objects.get(url = song_url)
+					self.song_list.append(song.id)
+
+				except ObjectDoesNotExist:
+					#The URL of our song could not be found
+					warn("The playlist entry: " + song_url + " could not be found, and has not been added to your playlist."
+
+			return True
+
+		#If we got here, the playlist format wasn't recognized.
+		return False

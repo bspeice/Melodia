@@ -2,9 +2,11 @@ from django.db import models
 import re, itertools
 
 class IntegerListField(models.TextField):
-	"""Store a list of integers in a database string.
+	"""
+	Store a list of integers in a database string.
 	Format is: 
-	[<int_1>, <int_2>, <int_3>, ... , <int_n>]"""
+	[<int_1>, <int_2>, <int_3>, ... , <int_n>]
+	"""
 
 	description = "Field type for storing lists of integers."
 

@@ -12,7 +12,7 @@ and helps in doing sorting etc.
 _default_title        = "_UNAVAILABLE_"
 _default_artist       = "_UNAVAILABLE_"
 _default_album        = "_UNAVAILABLE_"
-_default_release_date = datetime.datetime.now #Function will be called per new song, rather than once at loading the file
+_default_release_date = datetime.datetime.now #Function will be called per new song, rather than only being called right now.
 _default_genre        = "_UNAVAILABLE_"
 _default_bpm          = -1
 _default_disc_number  = -1
