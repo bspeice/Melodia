@@ -146,6 +146,9 @@ INSTALLED_APPS = (
 
 	# Melodia apps
 	'archiver',
+
+	#Django management
+	'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging

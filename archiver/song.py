@@ -29,6 +29,7 @@ class Song (models.Model):
 	"""
 	This class defines the fields and functions related to controlling
 	individual music files.
+	Note that the Playlist model depends on this model's PK being an int.
 	"""
 
 	#Standard user-populated metadata
@@ -50,8 +51,8 @@ class Song (models.Model):
 	url              = models.CharField(max_length = 255)
 	file_hash        = melodia_settings.HASH_RESULT_DB_TYPE
 
-	def populate_metadata(self, use_echonest = False):
-		"Populate the metadata of this song (only if file hash has changed)"
+	def _file_not_changed(self):
+		"Make sure the hash for this file is valid - return True if it has not changed."
 		#Overload the hash function with whatever Melodia as a whole is using
 		from Melodia.melodia_settings import HASH_FUNCTION as hash
 
@@ -63,51 +64,64 @@ class Song (models.Model):
 
 			if current_file_hash == self.file_hash:
 				#The song data hasn't changed at all, we don't need to do anything
-				return
+				return True
+
+		return False
+
+	def _grab_metadata_echonest(self):
+		"Populate this song's metadata using EchoNest"
+		pass
+
+	def _grab_metadata_local(self):
+		"Populate this song's metadata using what is locally available"
+		#It's weird, but we need to wrap importing audiotools
+		from Melodia.resources import add_resource_dir
+		add_resource_dir()
+		import audiotools
+
+		try:
+			track                 = audiotools.open(self.url)
+			track_metadata        = track.get_metadata()
+
+			self.title        = track_metadata.track_name  or _default_title
+			self.artist       = track_metadata.artist_name or _default_artist
+			self.album        = track_metadata.album_name  or _default_album
+			self.release_date = datetime.date(int(track_metadata.year or 1), 1, 1)
+			self.track_number = track_metadata.track_number or _default_track_number
+			self.track_total  = track_metadata.track_total  or _default_track_total
+			self.disc_number  = track_metadata.album_number or _default_disc_number
+			self.disc_total   = track_metadata.album_total  or _default_disc_total
+			self.bpm          = _default_bpm
+
+			self.bit_rate         = track.bits_per_sample() or _default_bit_rate
+			self.duration         = int(track.seconds_length()) or _default_duration
+			self.echonest_song_id = _default_echonest_song_id
+
+		except audiotools.UnsupportedFile, e:
+			#Couldn't grab the local data - fill in the remaining data for this record, preserving
+			#anything that already exists.
+			self.title            = self.title            or _default_title
+			self.artist           = self.artist           or _default_artist
+			self.album            = self.album            or _default_album
+			self.release_date     = self.release_date     or _default_release_date()
+
+			self.bpm              = self.bpm              or _default_bpm
+			self.bit_rate         = self.bit_rate         or _default_bitrate
+			self.duration         = self.bit_rate         or _default_duration
+			self.echonest_song_id = self.echonest_song_id or _default_echonest_song_id
+
+	def populate_metadata(self, use_echonest = False):
+		"Populate the metadata of this song (only if file hash has changed), and save the result."
+		if self._file_not_changed():
+			return
 
 		#If we've gotten to here, we do actually need to fully update the metadata
 		if use_echonest:
-			#Code to grab metadata from echonest here
-			pass
+			self._grab_echonest()
 
 		else:
-			#Grab metadata for the database using what is in the track.
-			from Melodia.resources import add_resource_dir
-			add_resource_dir()
-
-			import audiotools
-
-			try:
-				track                 = audiotools.open(self.url)
-				track_metadata        = track.get_metadata()
-
-				self.title        = track_metadata.track_name  or _default_title
-				self.artist       = track_metadata.artist_name or _default_artist
-				self.album        = track_metadata.album_name  or _default_album
-				self.release_date = datetime.date(int(track_metadata.year or 1), 1, 1)
-				self.track_number = track_metadata.track_number or _default_track_number
-				self.track_total  = track_metadata.track_total  or _default_track_total
-				self.disc_number  = track_metadata.album_number or _default_disc_number
-				self.disc_total   = track_metadata.album_total  or _default_disc_total
-				self.bpm          = _default_bpm
-
-				self.bit_rate         = track.bits_per_sample() or _default_bit_rate
-				self.duration         = int(track.seconds_length()) or _default_duration
-				self.echonest_song_id = _default_echonest_song_id
-
-			except audiotools.UnsupportedFile, e:
-				#Couldn't grab the local data - fill in the remaining data for this record, preserving
-				#anything that already exists.
-				self.title            = self.title            or _default_title
-				self.artist           = self.artist           or _default_artist
-				self.album            = self.album            or _default_album
-				self.release_date     = self.release_date     or _default_release_date()
-
-				self.bpm              = self.bpm              or _default_bpm
-				self.bit_rate         = self.bit_rate         or _default_bitrate
-				self.duration         = self.bit_rate         or _default_duration
-				self.echonest_song_id = self.echonest_song_id or _default_echonest_song_id
-
+			self._grab_metadata_local()
+			
 	def convert(self, output_location, output_format, progress_func = lambda x, y: None):
 		"Convert a song to a new format."
 		#Note that output_format over-rides the format guessed by output_location
