@@ -4,6 +4,9 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 admin.autodiscover()
 
+# Melodia web client
+from web.urls import web_urls
+
 urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'Melodia.views.home', name='home'),
@@ -14,4 +17,7 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
+
+	# Defer handling urls to the web_urls controller
+	url('', include(web_urls)),
 )
