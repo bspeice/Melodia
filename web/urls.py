@@ -6,5 +6,6 @@ web_urls = patterns('web.views',
     # url(r'^Melodia/', include('Melodia.foo.urls')),
 
 	url(r'^$|main/', 'main'),
-	url(r'^login/', 'login'),
+	url(r'^login/', 'login_page'),
+	url(r'^authenticate/', 'authenticate'),
 )
