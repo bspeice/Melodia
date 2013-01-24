@@ -205,3 +205,6 @@ if use_cache:
 				'LOCATION': CACHE_DIR,
 				}
 			}
+
+#URL to use for logins
+LOGIN_URL="/login"

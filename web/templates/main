@@ -1,0 +1,13 @@
+{% extends "base" %}
+
+{% block page_title  %}Melodia Music Player{% endblock %}
+
+{% block navbar_title %}Melodia{% endblock %}
+
+{% block sidebar_content %}
+<a href="#">Sidebar content goes here.</a>
+{% endblock %}
+
+{% block body_content %}
+<h1>Welcome to Melodia!</h1>
+{% endblock %}

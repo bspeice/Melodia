@@ -1,0 +1,70 @@
+{% comment %}
+
+List of block elements in this page:
+	page_title
+	navbar_title
+	navbar_content
+	sidebar
+		sidebar_content
+	body
+		body_content
+	scripts
+
+{% endcomment %}
+	
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>{% block page_title %}{% endblock %}</title>
+
+		<link href="{{ STATIC_URL }}css/bootstrap.min.css" rel="stylesheet">
+
+		<style>
+			body {
+				padding-top: 60px; /* Make sure that there is a gap on the navbar. */
+			}
+		</style>
+    </head>
+
+	<body>
+
+			{# Navbar code #}
+			<div class="navbar navbar-fixed-top">
+				<div class="navbar-inner">
+					<div class="container">
+						<a class="brand" href="#">{% block navbar_title %}{% endblock %}</a>
+						{% block navbar_content %}{% endblock %}
+					</div>
+				</div>
+			</div>
+
+		<div class="container-fluid">
+			<div class="row">
+
+				{# Sidebar code #}
+				{# Note that the sidebar is its own block, so we can remove it if need be. #}
+				{% block sidebar %}
+				<div class="span3">
+					<div class="well sidebar-nav">
+						{% block sidebar_content %}{% endblock %}
+					</div>
+				</div>
+				{% endblock %}
+
+				{% block body %}
+				<div class="span10">
+					{% block body_content %}{% endblock %}
+				</div>
+				{% endblock %}
+			</div>
+		</div>
+	</body>
+
+	{# General scripts #}
+	{% block scripts %}
+	<script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.9.0.min.js"></script>
+	<!--<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui-1.10.0.custom.min.js"></script>-->
+	{% endblock %}
+</html>

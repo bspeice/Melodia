@@ -1,0 +1,11 @@
+{% extends "base" %}
+
+{% block page_title  %}Login to Melodia{% endblock %}
+
+{% block navbar_title %}Login to Melodia{% endblock %}
+
+{# Specifying a blank sidebar, rather than sidebar_content, allows us to remove the sidebar entirely. #}
+{% block sidebar %}{% endblock %}
+
+{% block body_content %}
+{% endblock %}
