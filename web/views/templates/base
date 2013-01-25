@@ -9,6 +9,8 @@ List of block elements in this page:
 	body
 		body_content
 	scripts
+		global_scripts
+		page_scripts
 
 {% endcomment %}
 	
@@ -40,7 +42,7 @@ List of block elements in this page:
 			</div>
 
 		<div class="container-fluid">
-			<div class="row">
+			<div class="row-fluid">
 
 				{# Sidebar code #}
 				{# Note that the sidebar is its own block, so we can remove it if need be. #}
@@ -53,7 +55,7 @@ List of block elements in this page:
 				{% endblock %}
 
 				{% block body %}
-				<div class="span10">
+				<div class="span9">
 					{% block body_content %}{% endblock %}
 				</div>
 				{% endblock %}
@@ -66,5 +68,18 @@ List of block elements in this page:
 	<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
 	<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui.min.js"></script>
 	<script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+
+	{% block global_scripts %}
+	<script type="text/javascript">
+	{# Scripts used globally go here. #}
+	</script>
 	{% endblock %}
+
+	<script type="text/javascript">
+	{% block page_scripts %}
+	{# This block is used by each page if they want to add additional scripts. #}
+	{% endblock %}
+	</script>
+	{% endblock %}{# endblock scripts #}
 </html>
+<!-- vim: ft=htmldjango

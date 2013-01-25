@@ -11,3 +11,5 @@
 {% block body_content %}
 <h1>Welcome to Melodia!</h1>
 {% endblock %}
+
+<!-- vim: ft=htmldjango
