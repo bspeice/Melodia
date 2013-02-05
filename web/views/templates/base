@@ -74,7 +74,6 @@ List of block elements in this page:
 				{% endblock %}
 			</div>
 		</div>
-	</body>
 
 	{# General scripts #}
 	{% block scripts %}
@@ -94,4 +93,6 @@ List of block elements in this page:
 	{% endblock %}
 	</script>
 	{% endblock %}{# endblock scripts #}
+
+	</body>
 </html>

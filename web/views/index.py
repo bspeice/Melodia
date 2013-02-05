@@ -6,8 +6,10 @@ from django.template import RequestContext
 from django.shortcuts import render_to_response, redirect
 
 #Melodia-specific utilities
-from web_utils import json_response as json
+import web_utils
 
 @login_required
 def main(request):
-	return render_to_response("index", context_instance = RequestContext(request))
+	return render_to_response("index", context_instance = RequestContext(request,
+																		web_utils.template_resources()
+																		))

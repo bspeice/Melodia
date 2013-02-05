@@ -3,7 +3,7 @@
 
 <ul class="nav nav-list">
 	<li class="nav-header">Playlists</li>
-	{% for playlist in Playlist.objects.all %}
-	<li>{{ playlist.name }}</li>
+	{% for playlist in playlist_list %}
+	<li><a href="#" data-playlist-name="{{ playlist.name }}">{{ playlist.name }}</a></li>
 	{% endfor %}
 </ul>
