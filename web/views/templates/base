@@ -36,7 +36,18 @@ List of block elements in this page:
 				<div class="navbar-inner">
 					<div class="container">
 						<a class="brand" href="#">{% block navbar_title %}{% endblock %}</a>
-						{% block navbar_content %}{% endblock %}
+
+						{% block navbar_content %}
+
+						<div class="btn-group pull-right">
+							<a class="btn" href="#">{{ user.username }}</a>
+							<a class="btn dropdown-toggle" data-toggle="dropdown" href="#"><span class="caret" /></a>
+							<ul class="dropdown-menu">
+								<li id="btn_logout"><a href="/logout">Logout</a></li>
+							</ul>
+						</div>
+
+						{% endblock %}
 					</div>
 				</div>
 			</div>

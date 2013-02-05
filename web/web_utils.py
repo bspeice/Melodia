@@ -4,7 +4,7 @@ from django.http import HttpResponse
 
 def json_response(**kwargs):
 	#This is used to make sure that we have a standard json response
-	response = []
+	response = {}
 	for key, value in kwargs.iteritems():
 		response[key] = value
 

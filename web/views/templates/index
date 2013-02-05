@@ -5,7 +5,7 @@
 {% block navbar_title %}Melodia{% endblock %}
 
 {% block sidebar_content %}
-<a href="#">Sidebar content goes here.</a>
+	{% include "components/playlist_sidebar" %}
 {% endblock %}
 
 {% block body_content %}

@@ -1,0 +1,11 @@
+{# This component assumes it has been placed in a sidebar, and controls options related to playlists. #}
+
+
+<ul class="nav nav-list">
+	<li class="nav-header">Playlists</li>
+	{% for playlist in Playlist.objects.all %}
+	<li>{{ playlist.name }}</li>
+	{% endfor %}
+</ul>
+
+<!-- vim: ft=htmldjango

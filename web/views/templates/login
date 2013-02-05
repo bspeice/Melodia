@@ -3,8 +3,10 @@
 {% block page_title  %}Login to Melodia{% endblock %}
 
 {% block navbar_title %}Login to Melodia{% endblock %}
+{# Disable navbar content other than the title #}
+{% block navbar_content %}{% endblock %}
 
-{# Specifying a blank sidebar, rather than sidebar_content, allows us to remove the sidebar entirely. #}
+{# Similar to navbar, but remove entire sidebar #}
 {% block sidebar %}{% endblock %}
 
 {% block body %}
@@ -22,8 +24,8 @@
 		<button class="btn btn-primary">Login to Melodia</button>
 	</form>
 
-	{% if auth_form.non_field_errors %}
-	<div class="alert alert-error span4 offset4">{{ auth_form.non_field_errors }}</div>
+	{% if login_error %}
+	<div class="alert alert-error span4 offset4">{{ login_error }}</div>
 	{% endif %}
 
 </center>
