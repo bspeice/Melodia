@@ -2,15 +2,15 @@
 
 List of block elements in this page:
 	page_title
+	scripts
+		global_scripts
+		page_scripts
 	navbar_title
 	navbar_content
 	sidebar
 		sidebar_content
 	body
 		body_content
-	scripts
-		global_scripts
-		page_scripts
 
 {% endcomment %}
 	
@@ -27,6 +27,27 @@ List of block elements in this page:
 				padding-top: 60px; /* Make sure that there is a gap on the navbar. */
 			}
 		</style>
+
+		{# General scripts #}
+		{% block scripts %}
+		<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
+		<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui.min.js"></script>
+		<script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+
+			{% block global_scripts %}
+			<script type="text/javascript">
+			{# Scripts used globally go here. #}
+			</script>
+			{% endblock %}
+
+			<script type="text/javascript">
+			{% block page_scripts %}
+			{# This block is used by each page if they want to add additional scripts. #}
+			{% endblock %}
+			</script>
+
+		{% endblock %}{# endblock scripts #}
+
     </head>
 
 	<body>
@@ -74,25 +95,6 @@ List of block elements in this page:
 				{% endblock %}
 			</div>
 		</div>
-
-	{# General scripts #}
-	{% block scripts %}
-	<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
-	<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui.min.js"></script>
-	<script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
-
-	{% block global_scripts %}
-	<script type="text/javascript">
-	{# Scripts used globally go here. #}
-	</script>
-	{% endblock %}
-
-	<script type="text/javascript">
-	{% block page_scripts %}
-	{# This block is used by each page if they want to add additional scripts. #}
-	{% endblock %}
-	</script>
-	{% endblock %}{# endblock scripts #}
 
 	</body>
 </html>

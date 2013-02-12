@@ -1,9 +1,14 @@
 {# This component assumes it has been placed in a sidebar, and controls options related to playlists. #}
-
+{# Additionally, it is assumed that the "playlist_list" has been given to us #}
 
 <ul class="nav nav-list">
 	<li class="nav-header">Playlists</li>
+	<li><a href="#" data-playlist-name="">All Music</a></li>
 	{% for playlist in playlist_list %}
 	<li><a href="#" data-playlist-name="{{ playlist.name }}">{{ playlist.name }}</a></li>
 	{% endfor %}
 </ul>
+
+<script type="text/javascript">
+//It is safe to use jQuery here, since we placed jQuery at the top of the page
+</script>
