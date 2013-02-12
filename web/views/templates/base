@@ -36,7 +36,7 @@ List of block elements in this page:
 
 			{% block global_scripts %}
 			<script type="text/javascript">
-			{# Scripts used globally go here. #}
+			{% include global_scripts.js %}
 			</script>
 			{% endblock %}
 
@@ -52,28 +52,27 @@ List of block elements in this page:
 
 	<body>
 
-			{# Navbar code #}
-			<div class="navbar navbar-fixed-top">
-				<div class="navbar-inner">
-					<div class="container">
-						<a class="brand" href="#">{% block navbar_title %}{% endblock %}</a>
+		{# Navbar code #}
+		<div class="navbar navbar-fixed-top">
+			<div class="navbar-inner">
+				<div class="container">
+					<a class="brand" href="#">{% block navbar_title %}{% endblock %}</a>
 
-						{% block navbar_content %}
-
-						<div class="btn-group pull-right">
-							<a class="btn" href="#">{{ user.username }}</a>
-							<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-								<span class="caret"></span>
-							</a>
-							<ul class="dropdown-menu">
-								<li id="btn_logout"><a href="/logout">Logout</a></li>
-							</ul>
-						</div>
-
-						{% endblock %}
+					{% block navbar_content %}
+					<div class="btn-group pull-right">
+						<a class="btn" href="#">{{ user.username }}</a>
+						<a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+							<span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu">
+							<li id="btn_logout"><a href="/logout">Logout</a></li>
+						</ul>
 					</div>
+					{% endblock %}
+
 				</div>
 			</div>
+		</div>
 
 		<div class="container-fluid">
 			<div class="row-fluid">
