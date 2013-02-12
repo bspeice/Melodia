@@ -1,7 +1,10 @@
 from django.db import models
 from Melodia import melodia_settings
 
+from archive import Archive
+
 import datetime
+import os.path
 """
 The Song model
 Each instance of a Song represents a single music file.
@@ -63,6 +66,9 @@ class Song (models.Model):
 	skip_count = models.IntegerField(default = _default_int)
 	rating     = models.IntegerField(default = _default_int, choices = _default_rating_choices)
 
+	#Link back to the archive this comes from
+	parent_archive = models.ForeignKey(Archive)
+
 	#Set a static reference to the rating options
 	RATING_DEFAULT   = _default_rating
 	RATING_BAD       = _default_rating_bad
@@ -70,6 +76,10 @@ class Song (models.Model):
 	RATING_DECENT    = _default_rating_decent
 	RATING_GOOD      = _default_rating_good
 	RATING_EXCELLENT = _default_rating_excellent
+
+	def _get_full_url(self):
+		"Combine this song's URL with the URL of its parent"
+		return os.path.join(parent_archive.root_folder, self.url)
 
 	def _file_not_changed(self):
 		"Make sure the hash for this file is valid - return True if it has not changed."
@@ -79,7 +89,7 @@ class Song (models.Model):
 		#Check if there's a hash entry - if there is, the song may not have changed,
 		#and we can go ahead and return
 		if self.file_hash != None:
-			song_file = open(self.url, 'rb')
+			song_file = open(self._get_full_url, 'rb')
 			current_file_hash = hash(song_file.read())
 
 			if current_file_hash == self.file_hash:
@@ -94,10 +104,10 @@ class Song (models.Model):
 		#Overload the hash function with whatever Melodia as a whole is using
 		from Melodia.melodia_settings import HASH_FUNCTION as hash
 		
-		file_handle = open(self.url, 'rb')
+		file_handle = open(self._get_full_url, 'rb')
 		
 		self.file_hash = hash(file_handle.read())
-		self.file_size = os.stat(self.url).st_size
+		self.file_size = os.stat(self._get_full_url).st_size
 
 	def _grab_metadata_echonest(self):
 		"Populate this song's metadata using EchoNest"
@@ -110,8 +120,8 @@ class Song (models.Model):
 
 		try:
 			#Use mutagen to scan local metadata - don't update anything else (i.e. play_count)
-			track             = mutagen.File(self.url)
-			track_easy        = mutagen.File(self.url, easy=True)
+			track             = mutagen.File(self._get_full_url)
+			track_easy        = mutagen.File(self._get_full_url, easy=True)
 
 			self.title        = track_easy['title'][0]  or _default_string
 			self.artist       = track_easy['artist'][0] or _default_string

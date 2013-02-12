@@ -1,7 +1,5 @@
 from django.db import models
 
-from song import Song
-
 """
 This is the archive model for the archiving backend of Melodia.
 It's purpose is to control the high-level functionality of managing
@@ -31,8 +29,8 @@ class Archive (models.Model):
 	#Note that we're not using FilePathField since this is actually a folder
 	root_folder = models.CharField(max_length = 255)
 
-	#And a reference to the songs in this archive
-	songs       = models.ManyToManyField(Song)
+	#We've removed the reference to "songs" - instead define it as a ForeignKey,
+	#and do lookups via song_set
 
 	#Backup settings
 	backup_location  = models.CharField(max_length = 255, default = "/dev/null")
@@ -53,7 +51,7 @@ class Archive (models.Model):
 
 		#It's hackish, but far fewer transactions to delete everything first, and add it all back.
 		#If we get interrupted, just re-run it.
-		self.songs.all().delete()
+		song_set.all().delete()
 
 		#Add new songs
 		for dirname, dirnames, filenames in os.walk(self.root_folder):
@@ -63,16 +61,16 @@ class Archive (models.Model):
 				full_url = os.path.abspath(rel_url)
 				new_song = Song(url = full_url)
 				new_song.save()
-				self.songs.add(new_song)
+				song_set.add(new_song)
 
 	def _update_song_metadata(self, use_echonest = False, progress_callback = lambda x, y: None):
 		"""Scan every song in this archive (database only) and make sure all songs are correct
 		The progress_callback function is called with the current song being operated on first, and the total songs second."""
 		#This method operates only on the songs that are in the database - if you need to make
 		#sure that new songs are added, use the _scan_filesystem() method in addition
-		total_songs  = self.songs.count()
+		total_songs  = song_set.count()
 
-		for index, song in enumerate(self.songs.all()):
+		for index, song in enumerate(song_set.all()):
 			song.populate_metadata(use_echonest = use_echonest)
 			song.save()
 			progress_callback(index + 1, total_songs)
@@ -133,9 +131,9 @@ class Archive (models.Model):
 		"""
 		import os, shutil, errno
 
-		total_songs = self.songs.count()
+		total_songs = song_set.count()
 
-		for index, song in enumerate(self.songs.all()):
+		for index, song in enumerate(song_set.all()):
 			_current_filename              = os.path.basename(song.url)
 			_current_filename_no_extension = os.path.splitext(_current_filename)[0]
 
