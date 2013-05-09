@@ -2,7 +2,7 @@
 from django.utils import simplejson
 from django.http import HttpResponse
 
-from archiver.playlist import Playlist
+from archiver.models.playlist import Playlist
 
 def json_response(**kwargs):
 	#This is used to make sure that we have a standard json response
