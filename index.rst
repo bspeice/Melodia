@@ -3,19 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Melodia's documentation!
+Melodia documentation
 ===================================
 
-Contents:
+Welcome to the documentation for Melodia!
+
+Melodia is a full-featured music solution. It's designed to handle very large archives of music (the developer has 14,500+ songs), and multiple archive locations at that. The API documentation is below.
 
 .. toctree::
-   :maxdepth: 2
    :glob:
 
-   doc/extra/*
-
-.. automodule:: archiver
-   :members:
-
-.. automodule:: web
-   :members:
+   doc/docs/*
