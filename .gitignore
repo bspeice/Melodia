@@ -3,3 +3,4 @@
 *.sqlite
 secret_key.py
 Melodia/cache
+doc/build/*
