@@ -31,12 +31,13 @@ List of block elements in this page:
 		{# General scripts #}
 		{% block scripts %}
 		<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
-		<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui.min.js"></script>
 		<script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="{{ STATIC_URL }}js/angular.min.js"></script>
+		<script type="text/javascript" src="{{ STATIC_URL }}js/ui-bootstrap-0.3.0.min.js"></script>
 
 			{% block global_scripts %}
 			<script type="text/javascript">
-			{% include global_scripts.js %}
+			{% include "global_scripts.js" %}
 			</script>
 			{% endblock %}
 
