@@ -113,5 +113,8 @@ class Feed(models.Model):
 		:param dry_run: Calculate what would have been downloaded or deleted, but do not actually do either.
 		:param forbid_delete: Run, and only download new episodes. Ignores the :data:`max_episodes` field for this podcast.
 
+		.. todo::
+		   Actually write this method...
+
         """
         pass

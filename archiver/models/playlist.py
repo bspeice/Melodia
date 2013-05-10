@@ -1,24 +1,17 @@
 """
-.. module:: archiver.models
-
-Playlist model
-Each playlist is a high-level ordering of songs. There really isn't much to a playlist - just its name, and the songs inside it.
-However, we need to have a way to guarantee song order, in addition to re-ordering. A ManyToMany field can't do this.
-As such, a custom IntegerListField is implemented - it takes a python list of ints, converts it to a text field in the DB,
-and then back to a python list. This way, we can guarantee order, and have a song appear multiple times.
-The IntegerListField itself uses the ID of each song as the int in a list. For example, a list of:
-
-   [1, 3, 5, 17]
-
-Means that the playlist is made up of four songs. The order of the playlist is the song with index 1, 3, 5, and 17.
-Additionally, the ManyToMany field is included to make sure we don't use the global Songs manager - it just seems hackish.
+The Playlist model is simply that - it's a playlist of songs. However, we do
+have to guarantee the song order, in addition to re-ordering the playlist.
+As such, a :class:`models.ManyToManyField` isn't sufficient. We use a custom
+database field to store a list of integers - the :class:`IntegerListField`.
+This way we can guarantee song order, re-order the playlist, have songs
+appear multiple times, etc.
 """
 
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 
 from song import Song
-from listfield import IntegerListField
+from archiver.listfield import IntegerListField
 
 import re
 from warnings import warn
@@ -28,83 +21,74 @@ class Playlist(models.Model):
 		app_label = 'archiver'
 
 	"""
-	The Playlist class defines the playlist model and its operations.
-	Currently supported are add, move, and remove operations, as well as exporting to
-	multiple formats.
+	.. data:: name
+
+	   String with the human-readable name for this playlist.
+
+	.. data:: song_list
+
+	   List made up of Python integers. Each integer is assumed
+	   to be a primary key to the :data:`Song.id` field for a song.
 	"""
 
 	name       = models.CharField(max_length = 255)
 	song_list = IntegerListField()
 
-	#This is a bit of a backup field, since technically the song PK's are in
-	#the song_order field. However, it might be useful to just get a reference
-	#to the songs in this playlist. Additionally, it's kind of hackish to reference
-	#the global Song manager, rather than something that is specific for this playlist.
-	songs      = models.ManyToManyField(Song)
-
-	def _populate_songs(self):
-		"""
-		Make sure that the 'songs' relation is up-to-date.
-		"""
-		#This operation works by getting the ID's for all songs currently in the playlist,
-		#calculates what we need to add, what we need to remove, and then does it.
-		#As much work as is possible is done on the python side to avoid the DB at all costs.
-		current_song_ids     = [song.id for song in self.songs.all()]
-		current_song_ids_set = set(current_song_ids)
-
-		new_song_ids_set = set(self.song_list)
-
-		remove_set = current_song_ids_set.difference(new_song_ids_set)
-		add_set    = new_song_ids_set.difference(current_song_ids_set)
-
-		for song_id in remove_set:
-			song = self.songs.get(id = song_id)
-			song.remove()
-
-		for song_id in add_set:
-			song = Song.objects.get(id = song_id) #Using the global Songs manager is unavoidable for this one
-			self.songs.add(song)
-
 	def insert(self, position, new_song):
 		"""
 		Insert a new song into the playlist at a specific position.
+
+		:param position: **Index** for the position this new song should be inserted at.
+		:param new_song: Reference to a :class:`Song` instance that will be inserted.
 		"""
 
 		if not isinstance(new_song, Song):
 			#Not given a song reference, raise an error
 			raise ValidationError("Not given a song reference to insert.")
 			
-		self.songs.add(new_song)
-
 		self.song_list.insert(position, new_song.id)
-
-		self._populate_songs()
 
 	def append(self, new_song):
 		"""
 		Add a new song to the end of the playlist.
+
+		:param new_song: Reference to a :class:`Song` instance to be appended.
 		"""
+
 		if not isinstance(new_song, Song):
 			#Not given a song reference, raise an error
 			raise ValidationError("Not given a song reference to insert.")
 
-		self.songs.add(new_song)
-
 		self.song_list.append(new_song.id)
-
-		self._populate_songs()
 
 	def move(self, original_position, new_position):
 		"""
 		Move a song from one position to another
+
+		:param original_position: The index of the song we want to move
+		:param new_position: The index of where the song should be. See note below.
+
+		.. note::
+
+		   When moving songs, it's a bit weird since the index we're actually
+		   moving to may change. Consider the scenario --
+
+		      * Function called with indexes 4 and 6
+
+		      * Song removed from index 4 
+
+		        * The song that was in index 6 is now at index 5
+
+		      * Song inserted at index 6 in new list - one further than originally intended.
+
+		   As such, the behavior is that the song at index ``original_position`` is placed
+		   above the song at ``new_position`` when this function is called.
 		"""
 		if original_position == new_position:
 			return
 
 		song_id = self.song_list[original_position]
 
-		#This is actually a bit more complicated than it first appears, since the index we're moving to may actually change
-		#when we remove an item.
 		if new_position < original_position:
 			del self.song_list[original_position]
 			self.song_list.insert(new_position, song_id)
@@ -113,25 +97,29 @@ class Playlist(models.Model):
 			del self.song_list[original_position]
 			self.song_list.insert(new_position - 1, song_id) #Account for the list indices shifting down.
 
-		self._populate_songs()
-
 	def remove(self, position):
+		"""
+		Remove a song from this playlist.
+
+		:param position: Index of the song to be removed
+		"""
 		if position > len(self.song_list):
 			return False
 
 		del self.song_list[position]
 
-		self._populate_songs()
-
 	def export(self, playlist_type = "m3u"):
 		"""
 		Export this internal playlist to a file format.
 		Supported formats:
-			-pls
-			-m3u
-		Return value is a string containing the playlist -
-		you can write it to file as you deem necessary.
+
+		   * pls
+		   * m3u
+
+		:param playlist_type: String containing the file type to export to
+		:rtype: String containing the file content for this playlist.
 		"""
+
 		if playlist_type == "pls":
 			#Playlist header
 			playlist_string = "[playlist]"
@@ -162,13 +150,26 @@ class Playlist(models.Model):
 
 			return playlist_string
 
-	def _import(self, playlist_string = None):
+	def playlist_import(self, playlist_string = None):
 		"""
 		Import and convert a playlist into native DB format.
-		This function will return true if the playlist format was recognized, false otherwise.
-		It will return true even if there are errors processing individual songs in the playlist.
-		As a side note - the _import() name is used since python doesn't let
-		you name a function import().
+
+		:param playlist_string: A string with the file content we're trying to import.
+
+		:rtype: Returns true of the playlist format was recognized. See notes on processing below.
+
+		.. warning::
+
+		   The semantics on returning are nitpicky. This function will return ``False`` if the
+		   playlist format was not recognized. If there are errors in processing, this
+		   function will still return ``True``.
+
+		   For example, if you try to import a song which does not exist in an :class:`Archive`,
+		   it will fail that song silently.
+
+		.. todo::
+
+		   Actually write the import code.
 		"""
 		#TODO: Code playlist importing
 		self.song_list = []

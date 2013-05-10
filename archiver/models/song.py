@@ -1,3 +1,9 @@
+"""
+The :class:`Song` model is by far the most complicated and involved model.
+Each instance is a single music file. This model is used to store metadata
+about the song.
+"""
+
 from django.db import models
 from Melodia import melodia_settings
 
@@ -5,12 +11,6 @@ from archive import Archive
 
 import datetime
 import os.path
-"""
-The Song model
-Each instance of a Song represents a single music file.
-This database model is used for storing the metadata information about a song,
-and helps in doing sorting etc.
-"""
 
 _default_string = "_UNAVAILABLE_"
 _default_date   = datetime.datetime.now
@@ -32,18 +32,119 @@ _default_rating_choices = (
 		)
 
 class Song (models.Model):
-	class Meta:
-		app_label = 'archiver'
-	
 	"""
-	This class defines the fields and functions related to controlling
-	individual music files.
-	Note that the Playlist model depends on this model's PK being an int.
+	.. data:: title
+	   
+	   Title tag of this song
+
+	.. data:: artist
+
+	   Artist tag of this song.
+
+	.. data:: album_artist
+
+	   Album artist tag of this song. Can be used to group albums where
+	   individual songs were made by different people.
+
+	.. data:: album
+
+	   Album tag of this song.
+
+	.. data:: year
+	
+	   Integer representing the year this song was made.
+
+	.. data:: genre
+
+	   Genre tag of this song. This is a general :class:`models.CharField`
+	   field, and is not limited to a specific set of genres.
+
+	.. data:: bpm
+
+	   Beats per minute of this song (integer).
+
+	.. data:: disc_number
+
+	   Disc number this song came from
+
+	.. data:: disc_total
+
+	   Total number of discs in the album this song is from
+
+	.. data:: track_number
+
+	   Track number in the album this song is from
+
+	.. data:: track_total
+
+	   Total number of tracks in the album this song is from
+
+	.. data:: comment
+
+	   Comment tag of this song
+
+	.. data:: bit_rate
+
+	   Integer representing the bit rate of this song
+
+	.. data:: duration
+	
+	   Duration (in seconds, floating-point value) of this song
+
+	.. data:: add_date
+
+	   Date (not time) this song was added to the DB. Should **not** be
+	   modified outside of this class' methods.
+
+	.. data:: url
+
+	   URL for where this file is located on disk.
+
+	.. data:: file_hash
+
+	   The hash string for this file - used to quickly check if the file has
+	   been modified.
+
+	.. data:: file_size
+
+	   Size of the file in bytes.
+
+	.. data:: play_count
+
+	   How many times this file has been played through (defined as greater
+	   than 50% of the song heard before skipping)
+
+	.. data:: skip_count
+
+	   How many times this file has been skipped (defined as less than 50% of
+	   the song heard before skipping)
+
+	.. data:: rating
+
+	   Rating for this song. Ratings are as follows in order of increasing favoredness 
+	   on a 1--5 scale --
+
+	   =========    ========    ================
+	   Rating:      Value:      Class field:
+	   =========    ========    ================
+	   Default      0           RATING_DEFAULT
+	   Bad          1           RATING_BAD
+	   OK           2           RATING_OK
+	   Decent       3           RATING_DECENT
+	   Good         4           RATING_GOOD
+	   Excellent    5           RATING_EXCELLENT
+	   =========    ========    ================
+
+	.. todo:: 
+
+	   Change defaults to allow for ``None`` instead
+	   Change private functions to public as need be
 	"""
 
 	#Standard song metadata
 	title        = models.CharField(max_length = 64, default = _default_string)
 	artist       = models.CharField(max_length = 64, default = _default_string)
+	album_artist = models.CharField(max_length = 64, default = _default_string)
 	album        = models.CharField(max_length = 64, default = _default_string)
 	year         = models.IntegerField(default = _default_string)
 	genre        = models.CharField(max_length = 64, default = _default_string)
@@ -58,7 +159,6 @@ class Song (models.Model):
 	bit_rate         = models.IntegerField(default = _default_int)
 	duration         = models.FloatField(default = _default_int)
 	add_date         = models.DateField(default = _default_date)
-	echonest_song_id = models.CharField(max_length = 64, default = _default_string)
 	url              = models.CharField(max_length = 255)
 	file_hash        = melodia_settings.HASH_RESULT_DB_TYPE
 	file_size        = models.IntegerField(default = _default_int)
@@ -78,6 +178,9 @@ class Song (models.Model):
 	RATING_DECENT    = _default_rating_decent
 	RATING_GOOD      = _default_rating_good
 	RATING_EXCELLENT = _default_rating_excellent
+
+	class Meta:
+		app_label = 'archiver'
 
 	def _get_full_url(self):
 		"Combine this song's URL with the URL of its parent"
@@ -111,10 +214,6 @@ class Song (models.Model):
 		self.file_hash = hash(file_handle.read())
 		self.file_size = os.stat(self._get_full_url).st_size
 
-	def _grab_metadata_echonest(self):
-		"Populate this song's metadata using EchoNest"
-		pass
-
 	def _grab_metadata_local(self):
 		"Populate this song's metadata using what is locally available"
 		#Use mutagen to get the song metadata
@@ -145,8 +244,10 @@ class Song (models.Model):
 			#Couldn't grab the local data
 			return False
 
-	def populate_metadata(self, use_echonest = False):
-		"Populate the metadata of this song (only if file hash has changed), and save the result."
+	def populate_metadata(self):
+		"""
+		Populate the metadata of this song (only if file hash has changed), and save the result.
+		"""
 		if self._file_not_changed():
 			return
 
@@ -157,6 +258,15 @@ class Song (models.Model):
 		else:
 			self._grab_metadata_local()
 			
-	def convert(self, output_location, output_format, progress_func = lambda x, y: None):
-		"Convert a song to a new format."
+	def convert(self, output_location, output_format):
+		"""
+		Convert a song to a new format.
+
+		:param output_location: String URL of where the resulting file should be stored
+		:param output_format: Output format of the resulting file
+
+		.. todo::
+
+		   Actually write the code to convert files, or abandon if necessary
+		"""
 		pass #Need to get pydub code in place

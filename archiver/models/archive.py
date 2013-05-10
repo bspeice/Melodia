@@ -1,6 +1,4 @@
 """
-.. module:: archiver.models.archive
-
 This is the Archive model for the backend of Melodia. It's functionality is to
 provide a grouping of songs based on where they are located in the filesystem.
 It controls the high-level functionality of managing multiple archives
